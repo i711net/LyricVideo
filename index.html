@@ -102,8 +102,39 @@ main{display:flex;flex-direction:column;min-width:0;min-height:0;padding:14px;ga
 .dropall{position:fixed;inset:0;border:3px dashed var(--acc);background:rgba(139,92,246,.12);display:none;align-items:center;justify-content:center;font-size:22px;font-weight:700;z-index:60;pointer-events:none}
 .dropall.on{display:flex}
 .tag{display:inline-block;padding:1px 7px;border-radius:20px;background:#22223a;color:#c4b5fd;font-size:11px}
-@media (max-width:1180px){.app{grid-template-columns:320px 1fr}aside.r{display:none}}
-@media (max-width:820px){body{overflow:auto}.app{grid-template-columns:1fr;height:auto}aside.l{order:2;max-height:none}main{order:1;height:70vh}.pane{max-height:60vh}}
+.tabs .narrow{display:none}
+#p-tl{padding:0;flex-direction:column}
+#p-tl.on{display:flex}
+.syncbtns{display:flex;gap:8px;margin-top:8px}
+.syncbtns button{flex:1;padding:12px;font-size:15px;font-weight:700;border-radius:10px;border:0;cursor:pointer}
+.syncbtns .go{background:linear-gradient(90deg,var(--acc),var(--acc2));color:#fff;flex:3}
+.syncbtns .un{background:#2a2a40;color:#ddd}
+.syncbtns .ex{background:#2a2a40;color:#ddd}
+@media (hover:hover) and (min-width:821px){.syncbtns{display:none}}
+@media (max-width:1180px){.app{grid-template-columns:320px 1fr}aside.r{display:none}.tabs .narrow{display:block}}
+@media (max-width:820px){
+ html,body{height:100%;overflow:hidden}
+ header{height:46px;padding:0 10px;gap:6px;overflow-x:auto}
+ header .btn{padding:5px 8px;font-size:12px}
+ .logo small,#bKeys{display:none}
+ .logo{font-size:14px}
+ #bOpenProj,#bSaveProj{padding:5px 6px}
+ .app{display:flex;flex-direction:column;height:calc(100dvh - 46px)}
+ main{order:1;flex:none;padding:8px 8px 6px;gap:6px;border-bottom:1px solid var(--line);background:var(--bg);z-index:5}
+ .stage{flex:none;height:50vw}
+ #wf{height:40px}
+ .play{width:36px;height:36px}
+ .time{min-width:0;font-size:12px}
+ #stInfo{display:none}
+ aside.l{order:2;flex:1;min-height:0;border-right:0}
+ .tabs button{padding:10px 0 8px}
+ .pane{padding:12px}
+ .syncbar{bottom:6px;padding:8px 10px}
+ .syncbar .cur{font-size:16px}
+ .syncbar .top span:last-child{display:none}
+ .ln{grid-template-columns:70px 1fr auto}
+ .ln .ops{opacity:1}
+}
 </style>
 </head>
 <body>
@@ -123,8 +154,10 @@ main{display:flex;flex-direction:column;min-width:0;min-height:0;padding:14px;ga
     <button data-tab="src" class="on">素材</button>
     <button data-tab="lrc">歌词</button>
     <button data-tab="sty">样式</button>
+    <button data-tab="tl" class="narrow">时间轴</button>
     <button data-tab="exp">导出</button>
   </div>
+  <div class="pane" id="p-tl"></div>
 
   <!-- 素材 -->
   <div class="pane on" id="p-src">
@@ -272,6 +305,7 @@ main{display:flex;flex-direction:column;min-width:0;min-height:0;padding:14px;ga
       <div class="top"><span>🎯 打轴中 · <span id="syncN"></span></span><span><kbd>空格</kbd> 打点 · <kbd>↑</kbd> 撤销 · <kbd>Esc</kbd> 退出</span></div>
       <div class="cur" id="syncCur"></div>
       <div class="nx" id="syncNext"></div>
+      <div class="syncbtns"><button class="un" id="bUndo">↶ 撤销</button><button class="go" id="bStamp">👆 打点</button><button class="ex" id="bExitSync">退出</button></div>
     </div>
   </div>
   <div class="transport">
@@ -470,7 +504,15 @@ function dims(){const base=+S.res;const a=S.aspect;
  if(a==='16:9')return[Math.round(base*16/9),base];if(a==='9:16')return[base,Math.round(base*16/9)];
  if(a==='4:5')return[base,Math.round(base*1.25)];return[base,base]}
 function resizeCanvas(){let[w,h]=dims();w&=~1;h&=~1;if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;layCache.clear();bgCache=null}fitCanvas()}
-function fitCanvas(){const st=$('#stage');const W=st.clientWidth,H=st.clientHeight,r=cv.width/cv.height;let w=W,h=W/r;if(h>H){h=H;w=H*r}cv.style.width=w+'px';cv.style.height=h+'px'}
+const mqMobile=matchMedia('(max-width:820px)'),mqNarrow=matchMedia('(max-width:1180px)');
+function sizeStage(){const st=$('#stage');
+ if(mqMobile.matches){const r=cv.height/cv.width;const w=document.documentElement.clientWidth-16;
+  const maxH=Math.min(window.innerHeight*(r>1?.5:.42),r>1?window.innerHeight*.5:9999);st.style.height=Math.round(Math.min(w*r,maxH))+'px'}
+ else st.style.height='';}
+function placeList(){const head=$('.listhead'),lst=$('#list');const tgt=mqNarrow.matches?$('#p-tl'):$('aside.r');
+ if(head.parentNode!==tgt){tgt.appendChild(head);tgt.appendChild(lst)}
+ if(!mqNarrow.matches&&$('#p-tl').classList.contains('on'))$('.tabs [data-tab=src]').click();}
+function fitCanvas(){sizeStage();const st=$('#stage');const W=st.clientWidth,H=st.clientHeight,r=cv.width/cv.height;let w=W,h=W/r;if(h>H){h=H;w=H*r}cv.style.width=w+'px';cv.style.height=h+'px'}
 const CJK=/[⺀-鿿가-힯぀-ヿ＀-￯　-〿]/;
 function layout(text,font,maxW){
  const key=font+'|'+maxW+'|'+text;let L=layCache.get(key);if(L)return L;
@@ -869,7 +911,11 @@ function restore(){try{const j=JSON.parse(localStorage.getItem('lvs_state')||'nu
 if(!restore()){lines=parseLyrics(DEMO).lines}
 $('#raw').value=lines.length?toLRC():DEMO;
 rebuildTL();renderList();syncUI();resizeCanvas();sizeWF();
+placeList();
+mqNarrow.addEventListener('change',placeList);
 window.addEventListener('resize',()=>{fitCanvas();sizeWF()});
+$('#bStamp').onclick=()=>{if(syncMode)stamp()};$('#bUndo').onclick=()=>{if(syncMode)undoStamp()};
+$('#bExitSync').onclick=()=>{if(syncMode){clock.pause();endSync(false)}};
 new ResizeObserver(()=>{fitCanvas();sizeWF()}).observe($('#stage'));
 requestAnimationFrame(loop);
 </script>
